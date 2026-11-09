@@ -161,7 +161,7 @@
             <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                    <input type="text" id="searchInput" oninput="renderData()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, S/N, ชื่อผู้เบิก..." class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <input type="text" id="searchInput" oninput="renderData()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, S/N, ผู้ถือครอง..." class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
@@ -195,13 +195,15 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                                <th class="py-3.5 px-5">รหัสครุภัณฑ์</th>
-                                <th class="py-3.5 px-5">ชื่ออุปกรณ์ / รุ่น</th>
-                                <th class="py-3.5 px-5">หมวดหมู่</th>
-                                <th class="py-3.5 px-5">Serial Number</th>
-                                <th class="py-3.5 px-5">สถานะ</th>
-                                <th class="py-3.5 px-5">ผู้ถือครอง / สถานที่</th>
-                                <th class="py-3.5 px-5 text-right">จัดการ</th>
+                                <th class="py-3.5 px-4">รหัสครุภัณฑ์</th>
+                                <th class="py-3.5 px-4">ชื่ออุปกรณ์ / รุ่น</th>
+                                <th class="py-3.5 px-4">หมวดหมู่</th>
+                                <th class="py-3.5 px-4">Serial Number</th>
+                                <th class="py-3.5 px-4">สถานะ</th>
+                                <th class="py-3.5 px-4">ผู้ถือครอง / สถานที่</th>
+                                <th class="py-3.5 px-4">วันที่ได้รับ</th>
+                                <th class="py-3.5 px-4">อัปเดตล่าสุด</th>
+                                <th class="py-3.5 px-4 text-right">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="desktopTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -269,9 +271,15 @@
                     </select>
                 </div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">ผู้ถือครอง / สถานที่จัดเก็บ *</label>
-                <input type="text" id="holder" required placeholder="เช่น คลังไอที ชั้น 3 หรือ คุณสมชาย (ฝ่ายบัญชี)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">ผู้ถือครอง / สถานที่จัดเก็บ *</label>
+                    <input type="text" id="holder" required placeholder="เช่น คลังไอที ชั้น 3" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">วันที่ได้รับ *</label>
+                    <input type="date" id="receivedDate" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
             </div>
             <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
                 <button type="button" onclick="closeModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 transition">ยกเลิก</button>
@@ -283,9 +291,8 @@
 
 <script>
     // ================== ตั้งค่า ==================
-    // วางลิงก์ Web App ที่ลงท้ายด้วย /exec ไว้ในเครื่องหมายคำพูดด้านล่าง
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPhj3-oNPfMLHIBLYnuD2AjSbShgnld1wXs-vGfn8lvCgHLNZgoMm4xVj0M2Qfdpfy/exec";
-    const AUTO_REFRESH_MS = 60000; // ดึงข้อมูลใหม่อัตโนมัติทุก 1 นาที
+    const AUTO_REFRESH_MS = 60000; 
     // ============================================
 
     const PIN_KEY = 'it_inventory_pin';
@@ -300,7 +307,15 @@
         return /^https:\/\/script\.google\.com\/.+\/exec$/.test(SCRIPT_URL.trim());
     }
 
-    // ---------- เรียก API ----------
+    // แปลงวันที่จาก YYYY-MM-DD เป็น DD/MM/YYYY สำหรับแสดงผล
+    function formatDateDisplay(dateStr) {
+        if (!dateStr) return '-';
+        if (dateStr.includes('/')) return dateStr; // ถ้ามาแบบ DD/MM/YYYY อยู่แล้ว
+        const parts = dateStr.split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return dateStr;
+    }
+
     async function apiGet() {
         const res = await fetch(SCRIPT_URL + '?pin=' + encodeURIComponent(userPin) + '&t=' + Date.now());
         return res.json();
@@ -315,7 +330,6 @@
         return res.json();
     }
 
-    // ---------- สถานะการเชื่อมต่อ ----------
     function setSyncUI(state) {
         const badge = document.getElementById('cloudBadge');
         const text = document.getElementById('syncStatusText');
@@ -338,7 +352,6 @@
         }
     }
 
-    // ---------- ล็อก / ปลดล็อก ----------
     function showLock(msg) {
         const lock = document.getElementById('lockScreen');
         lock.classList.remove('hidden');
@@ -388,7 +401,6 @@
         showLock();
     }
 
-    // ---------- โหลดข้อมูล ----------
     function handleResponse(json) {
         if (json.status === 'unauthorized') {
             localStorage.removeItem(PIN_KEY);
@@ -425,7 +437,6 @@
         }
     }
 
-    // ---------- เพิ่ม / แก้ไข / ลบ ----------
     async function saveItem(e) {
         e.preventDefault();
         const originalTag = document.getElementById('editTag').value;
@@ -435,7 +446,8 @@
             category: document.getElementById('category').value,
             serial: document.getElementById('serial').value.trim(),
             status: document.getElementById('status').value,
-            holder: document.getElementById('holder').value.trim()
+            holder: document.getElementById('holder').value.trim(),
+            receivedDate: document.getElementById('receivedDate').value
         };
 
         const btn = document.getElementById('saveBtn');
@@ -472,7 +484,6 @@
         }
     }
 
-    // ---------- แสดงผล ----------
     function getStatusBadge(status) {
         if (status === 'พร้อมใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>พร้อมใช้งาน</span>';
         if (status === 'กำลังใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>กำลังใช้งาน</span>';
@@ -518,18 +529,22 @@
             const cat = escapeHtml(item.category);
             const serial = escapeHtml(item.serial);
             const holder = escapeHtml(item.holder);
+            const receivedDate = escapeHtml(formatDateDisplay(item.receivedDate));
+            const updatedAt = escapeHtml(item.updatedAt);
             const badge = getStatusBadge(item.status);
             const catIcon = getCategoryIcon(item.category);
 
             desktopHtml += `
                 <tr class="hover:bg-slate-50/80 transition">
-                    <td class="py-3.5 px-5 font-semibold text-blue-600 whitespace-nowrap">${tag}</td>
-                    <td class="py-3.5 px-5 font-medium text-slate-800">${name}</td>
-                    <td class="py-3.5 px-5 text-slate-600 whitespace-nowrap"><span class="mr-2">${catIcon}</span>${cat}</td>
-                    <td class="py-3.5 px-5 font-mono text-xs text-slate-500">${serial}</td>
-                    <td class="py-3.5 px-5 whitespace-nowrap">${badge}</td>
-                    <td class="py-3.5 px-5 text-slate-600">${holder}</td>
-                    <td class="py-3.5 px-5 text-right whitespace-nowrap space-x-1">
+                    <td class="py-3.5 px-4 font-semibold text-blue-600 whitespace-nowrap">${tag}</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-800">${name}</td>
+                    <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap"><span class="mr-2">${catIcon}</span>${cat}</td>
+                    <td class="py-3.5 px-4 font-mono text-xs text-slate-500">${serial}</td>
+                    <td class="py-3.5 px-4 whitespace-nowrap">${badge}</td>
+                    <td class="py-3.5 px-4 text-slate-600">${holder}</td>
+                    <td class="py-3.5 px-4 text-slate-600 text-xs whitespace-nowrap"><i class="fa-regular fa-calendar text-slate-400 mr-1.5"></i>${receivedDate}</td>
+                    <td class="py-3.5 px-4 text-slate-400 text-xs whitespace-nowrap">${updatedAt}</td>
+                    <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
                         <button onclick="openModal(${index})" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fa-solid fa-pen-to-square"></i></button>
                         <button onclick="deleteItem(${index})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -548,6 +563,8 @@
                     <div class="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs border border-slate-100">
                         <div class="flex justify-between gap-2"><span class="text-slate-400">Serial Number:</span><span class="font-mono font-medium text-slate-700">${serial}</span></div>
                         <div class="flex justify-between gap-2"><span class="text-slate-400">ผู้ถือครอง/ที่เก็บ:</span><span class="font-medium text-slate-700 text-right">${holder}</span></div>
+                        <div class="flex justify-between gap-2"><span class="text-slate-400">วันที่ได้รับ:</span><span class="font-medium text-slate-700">${receivedDate}</span></div>
+                        <div class="flex justify-between gap-2"><span class="text-slate-400">อัปเดตล่าสุด:</span><span class="text-slate-500">${updatedAt}</span></div>
                     </div>
                     <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
                         <button onclick="openModal(${index})" class="flex-1 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</button>
@@ -562,7 +579,6 @@
         updateStats();
     }
 
-    // ---------- ตัวกรอง ----------
     function setFilterCategory(cat) { document.getElementById('categoryFilter').value = cat; renderData(); }
     function setStatusFilter(s) { document.getElementById('statusFilter').value = s; renderData(); }
     function clearSearch() { document.getElementById('searchInput').value = ''; renderData(); }
@@ -573,13 +589,16 @@
         renderData();
     }
 
-    // ---------- Modal ----------
     function isModalOpen() { return !document.getElementById('itemModal').classList.contains('hidden'); }
 
     function openModal(index = null) {
         const modal = document.getElementById('itemModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+        
+        // ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD สำหรับเซ็ตค่าเริ่มต้นใน input type="date"
+        const todayStr = new Date().toISOString().split('T')[0];
+
         if (index !== null) {
             const item = inventory[index];
             document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลพัสดุ';
@@ -590,10 +609,14 @@
             document.getElementById('serial').value = item.serial;
             document.getElementById('status').value = item.status;
             document.getElementById('holder').value = item.holder;
+            // ถ้ามีวันที่เก่าให้ใส่ ถ้าไม่มีให้ใช้วันนี้
+            document.getElementById('receivedDate').value = item.receivedDate ? item.receivedDate.split('/').reverse().join('-') : todayStr;
         } else {
             document.getElementById('modalTitle').innerText = 'เพิ่มพัสดุไอทีใหม่';
             document.getElementById('itemForm').reset();
             document.getElementById('editTag').value = '';
+            // กำหนดค่าเริ่มต้นเป็นวันปัจจุบัน
+            document.getElementById('receivedDate').value = todayStr;
         }
     }
 
@@ -603,7 +626,6 @@
         modal.classList.remove('flex');
     }
 
-    // ---------- Sidebar มือถือ ----------
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('sidebarBackdrop');
@@ -619,12 +641,11 @@
     }
     function closeSidebarOnMobile() { if (window.innerWidth < 1024) toggleSidebar(); }
 
-    // ---------- Export CSV ----------
     function exportCSV() {
         const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-        let csv = '\uFEFFรหัสครุภัณฑ์,ชื่ออุปกรณ์,หมวดหมู่,Serial Number,สถานะ,ผู้ถือครอง/สถานที่,อัปเดตล่าสุด\n';
+        let csv = '\uFEFFรหัสครุภัณฑ์,ชื่ออุปกรณ์,หมวดหมู่,Serial Number,สถานะ,ผู้ถือครอง/สถานที่,วันที่ได้รับ,อัปเดตล่าสุด\n';
         inventory.forEach(i => {
-            csv += [i.assetTag, i.name, i.category, i.serial, i.status, i.holder, i.updatedAt].map(q).join(',') + '\n';
+            csv += [i.assetTag, i.name, i.category, i.serial, i.status, i.holder, i.receivedDate, i.updatedAt].map(q).join(',') + '\n';
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');
@@ -633,7 +654,6 @@
         a.click();
     }
 
-    // ---------- เริ่มทำงาน ----------
     renderData();
     if (!isUrlReady()) {
         showLock('ยังไม่ได้ใส่ลิงก์ /exec ในโค้ด (บรรทัด SCRIPT_URL)');
