@@ -167,6 +167,11 @@
                     </button>
                 </div>
                 <div class="grid grid-cols-2 sm:flex gap-2.5">
+                    <!-- ช่องกรองตามวันที่ได้รับ -->
+                    <div class="relative">
+                        <input type="date" id="dateFilter" onchange="renderData()" class="w-full sm:w-44 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" title="กรองตามวันที่ได้รับ">
+                        <button id="clearDateBtn" onclick="clearDateFilter()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs bg-slate-200 px-1.5 py-0.5 rounded-md">ล้าง</button>
+                    </div>
                     <select id="categoryFilter" onchange="renderData()" class="w-full sm:w-44 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">ทุกหมวดหมู่</option>
                         <option value="Computer / Laptop">Computer / Laptop</option>
@@ -307,10 +312,9 @@
         return /^https:\/\/script\.google\.com\/.+\/exec$/.test(SCRIPT_URL.trim());
     }
 
-    // แปลงวันที่จาก YYYY-MM-DD เป็น DD/MM/YYYY สำหรับแสดงผล
     function formatDateDisplay(dateStr) {
         if (!dateStr) return '-';
-        if (dateStr.includes('/')) return dateStr; // ถ้ามาแบบ DD/MM/YYYY อยู่แล้ว
+        if (dateStr.includes('/')) return dateStr;
         const parts = dateStr.split('-');
         if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
         return dateStr;
@@ -507,15 +511,29 @@
 
     function renderData() {
         const search = document.getElementById('searchInput').value.toLowerCase();
+        const dateFilter = document.getElementById('dateFilter').value; // ค่าจากช่องกรองวันที่ (YYYY-MM-DD)
         const category = document.getElementById('categoryFilter').value;
         const status = document.getElementById('statusFilter').value;
+
         document.getElementById('clearSearchBtn').classList.toggle('hidden', search === '');
+        document.getElementById('clearDateBtn').classList.toggle('hidden', !dateFilter);
 
         const filtered = inventory
             .map((item, index) => ({ item, index }))
             .filter(({ item }) => {
                 const text = [item.assetTag, item.name, item.serial, item.holder].join(' ').toLowerCase();
+                
+                // ตรวจสอบเงื่อนไขวันที่ได้รับ (รองรับทั้งแบบเทียบ YYYY-MM-DD และแบบแปลงแล้ว)
+                let matchDate = true;
+                if (dateFilter) {
+                    const itemDateFormatted = item.receivedDate ? item.receivedDate.trim() : '';
+                    const parts = dateFilter.split('-'); // [YYYY, MM, DD]
+                    const targetDDMMYYYY = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    matchDate = (itemDateFormatted === dateFilter || itemDateFormatted === targetDDMMYYYY);
+                }
+
                 return text.includes(search)
+                    && matchDate
                     && (category === '' || item.category === category)
                     && (status === '' || item.status === status);
             });
@@ -582,8 +600,11 @@
     function setFilterCategory(cat) { document.getElementById('categoryFilter').value = cat; renderData(); }
     function setStatusFilter(s) { document.getElementById('statusFilter').value = s; renderData(); }
     function clearSearch() { document.getElementById('searchInput').value = ''; renderData(); }
+    function clearDateFilter() { document.getElementById('dateFilter').value = ''; renderData(); }
+    
     function resetFilters() {
         document.getElementById('searchInput').value = '';
+        document.getElementById('dateFilter').value = '';
         document.getElementById('categoryFilter').value = '';
         document.getElementById('statusFilter').value = '';
         renderData();
@@ -596,7 +617,6 @@
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         
-        // ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD สำหรับเซ็ตค่าเริ่มต้นใน input type="date"
         const todayStr = new Date().toISOString().split('T')[0];
 
         if (index !== null) {
@@ -609,13 +629,11 @@
             document.getElementById('serial').value = item.serial;
             document.getElementById('status').value = item.status;
             document.getElementById('holder').value = item.holder;
-            // ถ้ามีวันที่เก่าให้ใส่ ถ้าไม่มีให้ใช้วันนี้
             document.getElementById('receivedDate').value = item.receivedDate ? item.receivedDate.split('/').reverse().join('-') : todayStr;
         } else {
             document.getElementById('modalTitle').innerText = 'เพิ่มพัสดุไอทีใหม่';
             document.getElementById('itemForm').reset();
             document.getElementById('editTag').value = '';
-            // กำหนดค่าเริ่มต้นเป็นวันปัจจุบัน
             document.getElementById('receivedDate').value = todayStr;
         }
     }
