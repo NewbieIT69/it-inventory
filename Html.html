@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบคลังพัสดุ IT - Cloud Sync Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+
+<div class="flex h-screen overflow-hidden relative">
+
+    <!-- Mobile Backdrop Overlay -->
+    <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 hidden lg:hidden transition-opacity opacity-0"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-white flex flex-col transform -translate-x-full lg:translate-x-0 lg:static lg:w-64 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none">
+        <div class="p-5 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <i class="fa-solid fa-cloud text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">คลังพัสดุ IT</h1>
+                    <span class="text-[11px] text-emerald-400 font-medium uppercase tracking-wider">Google Sheets Sync</span>
+                </div>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <div class="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">เมนูหลัก</div>
+            <button onclick="setFilterCategory(''); closeSidebarOnMobile();" class="w-full flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-sm transition">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-boxes-stacked w-5 text-center"></i> พัสดุทั้งหมด</span>
+                <span id="badge-all" class="bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+            </button>
+
+            <div class="pt-4 pb-2 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">แยกตามหมวดหมู่</div>
+            <button onclick="setFilterCategory('Computer / Laptop'); closeSidebarOnMobile();" class="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:bg-slate-800/80 hover:text-white rounded-xl text-sm transition">
+                <i class="fa-solid fa-laptop w-5 text-center text-blue-400"></i> คอมพิวเตอร์ / โน้ตบุ๊ก
+            </button>
+            <button onclick="setFilterCategory('Monitor'); closeSidebarOnMobile();" class="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:bg-slate-800/80 hover:text-white rounded-xl text-sm transition">
+                <i class="fa-solid fa-desktop w-5 text-center text-indigo-400"></i> จอภาพ (Monitor)
+            </button>
+            <button onclick="setFilterCategory('Network'); closeSidebarOnMobile();" class="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:bg-slate-800/80 hover:text-white rounded-xl text-sm transition">
+                <i class="fa-solid fa-network-wired w-5 text-center text-emerald-400"></i> อุปกรณ์เครือข่าย
+            </button>
+            <button onclick="setFilterCategory('Peripherals'); closeSidebarOnMobile();" class="w-full flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:bg-slate-800/80 hover:text-white rounded-xl text-sm transition">
+                <i class="fa-solid fa-keyboard w-5 text-center text-amber-400"></i> อุปกรณ์ต่อพ่วง / อะไหล่
+            </button>
+        </nav>
+
+        <!-- Cloud Status Footer -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950/50 text-xs text-slate-400 space-y-2">
+            <div class="flex justify-between items-center">
+                <span id="syncStatusText" class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span> โหมดออฟไลน์
+                </span>
+                <button onclick="openConfigModal()" class="text-blue-400 hover:text-blue-300 underline">ตั้งค่าลิงก์</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- Top Header -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-3.5 flex justify-between items-center sticky top-0 z-20">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div>
+                    <h2 class="text-base sm:text-xl font-bold text-slate-800 truncate flex items-center gap-2">
+                        คลังพัสดุ IT
+                        <span id="cloudBadge" onclick="openConfigModal()" class="cursor-pointer hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700">
+                            <i class="fa-solid fa-plug-circle-xmark"></i> ยังไม่ได้เชื่อม Sheet
+                        </span>
+                    </h2>
+                    <p class="text-xs text-slate-500 hidden sm:block">ซิงก์ข้อมูลอัตโนมัติกับ Google Sheets (คลังพัสดุ IT)</p>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="fetchFromGoogleSheet()" id="refreshBtn" class="p-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm transition shadow-sm" title="ดึงข้อมูลล่าสุดจาก Google Sheet">
+                    <i id="refreshIcon" class="fa-solid fa-arrows-rotate"></i>
+                </button>
+                <button onclick="openConfigModal()" class="p-2.5 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-sm transition shadow-sm" title="ตั้งค่าลิงก์ Google Sheet">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button onclick="exportCSV()" class="hidden sm:flex px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium items-center gap-2 transition shadow-sm">
+                    <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV
+                </button>
+                <button onclick="openModal()" class="px-3.5 py-2.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow-md shadow-blue-600/20 transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>เพิ่มพัสดุ</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 pb-24 sm:pb-6">
+
+            <!-- Alert Banner if not connected -->
+            <div id="setupBanner" class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-link"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm">เชื่อมต่อกับ Google Sheets "คลังพัสดุ IT"</h4>
+                        <p class="text-xs text-blue-100">นำ Web App URL ที่ลงท้ายด้วย /exec มาใส่เพื่อให้หน้าเว็บส่งข้อมูลเข้าชีตได้ทันที</p>
+                    </div>
+                </div>
+                <button onclick="openConfigModal()" class="w-full sm:w-auto px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-bold shrink-0 transition shadow-sm">
+                    ใส่ลิงก์เชื่อมต่อที่นี่
+                </button>
+            </div>
+            
+            <!-- Summary KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div onclick="setStatusFilter('')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-medium text-slate-500">ทั้งหมดในระบบ</p>
+                        <h3 id="stat-total" class="text-xl sm:text-2xl font-bold text-slate-800 mt-0.5">0</h3>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                </div>
+                <div onclick="setStatusFilter('พร้อมใช้งาน')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-medium text-slate-500">พร้อมใช้ (Stock)</p>
+                        <h3 id="stat-available" class="text-xl sm:text-2xl font-bold text-emerald-600 mt-0.5">0</h3>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+                <div onclick="setStatusFilter('กำลังใช้งาน')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-medium text-slate-500">ใช้งานอยู่ (In Use)</p>
+                        <h3 id="stat-inuse" class="text-xl sm:text-2xl font-bold text-amber-600 mt-0.5">0</h3>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                </div>
+                <div onclick="setStatusFilter('ส่งซ่อม')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-medium text-slate-500">ส่งซ่อม / เคลม</p>
+                        <h3 id="stat-repair" class="text-xl sm:text-2xl font-bold text-rose-600 mt-0.5">0</h3>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filters Bar -->
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="renderData()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, S/N, ชื่อผู้เบิก..." class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:flex gap-2.5">
+                    <select id="categoryFilter" onchange="renderData()" class="w-full sm:w-44 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">ทุกหมวดหมู่</option>
+                        <option value="Computer / Laptop">Computer / Laptop</option>
+                        <option value="Monitor">Monitor</option>
+                        <option value="Network">Network</option>
+                        <option value="Peripherals">Peripherals</option>
+                    </select>
+                    <select id="statusFilter" onchange="renderData()" class="w-full sm:w-40 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">ทุกสถานะ</option>
+                        <option value="พร้อมใช้งาน">พร้อมใช้งาน</option>
+                        <option value="กำลังใช้งาน">กำลังใช้งาน</option>
+                        <option value="ส่งซ่อม">ส่งซ่อม</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DESKTOP VIEW: Table -->
+            <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-5">รหัสครุภัณฑ์</th>
+                                <th class="py-3.5 px-5">ชื่ออุปกรณ์ / รุ่น</th>
+                                <th class="py-3.5 px-5">หมวดหมู่</th>
+                                <th class="py-3.5 px-5">Serial Number</th>
+                                <th class="py-3.5 px-5">สถานะ</th>
+                                <th class="py-3.5 px-5">ผู้ถือครอง / สถานที่</th>
+                                <th class="py-3.5 px-5 text-right">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="desktopTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- MOBILE VIEW: Card Grid -->
+            <div id="mobileCardContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:hidden"></div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <h4 class="font-bold text-slate-700 text-base">ไม่พบรายการพัสดุที่ค้นหา</h4>
+                <p class="text-xs text-slate-500 mt-1">ลองเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูข้อมูลทั้งหมด</p>
+                <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition">
+                    ล้างตัวกรองทั้งหมด
+                </button>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal Add/Edit Item -->
+<div id="itemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 id="modalTitle" class="font-bold text-base sm:text-lg text-slate-800">เพิ่มพัสดุไอทีใหม่</h3>
+            <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-200/70 text-slate-500 hover:bg-slate-300 flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="itemForm" onsubmit="saveItem(event)" class="p-6 space-y-4 overflow-y-auto">
+            <input type="hidden" id="editIndex">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">รหัสครุภัณฑ์ (Asset Tag) *</label>
+                    <input type="text" id="assetTag" required placeholder="เช่น IT-NB-003" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">หมวดหมู่ *</label>
+                    <select id="category" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Computer / Laptop">Computer / Laptop</option>
+                        <option value="Monitor">Monitor</option>
+                        <option value="Network">Network</option>
+                        <option value="Peripherals">Peripherals</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">ชื่ออุปกรณ์และสเปค *</label>
+                <input type="text" id="name" required placeholder="เช่น ThinkPad X1 Carbon Gen 11" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Serial Number (S/N) *</label>
+                    <input type="text" id="serial" required placeholder="เช่น PF39X821" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">สถานะปัจจุบัน *</label>
+                    <select id="status" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="พร้อมใช้งาน">พร้อมใช้งาน (In Stock)</option>
+                        <option value="กำลังใช้งาน">กำลังใช้งาน (In Use)</option>
+                        <option value="ส่งซ่อม">ส่งซ่อม (Repair)</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">ผู้ถือครอง / สถานที่จัดเก็บ *</label>
+                <input type="text" id="holder" required placeholder="เช่น คลังไอที ชั้น 3 หรือ คุณสมชาย (ฝ่ายบัญชี)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
+                <button type="button" onclick="closeModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 transition">ยกเลิก</button>
+                <button type="submit" id="saveBtn" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md shadow-blue-600/20 transition">บันทึกข้อมูล</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Config Google Sheet API -->
+<div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-blue-600"></i> ตั้งค่าเชื่อม Google Sheets
+            </h3>
+            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Google Apps Script Web App URL</label>
+                <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                    วางลิงก์ที่ได้จากการ Deploy Google Apps Script (ต้องลงท้ายด้วย <code class="bg-slate-100 px-1 rounded font-bold text-blue-600">/exec</code> เท่านั้น)
+                </p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeConfigModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-600 hover:bg-slate-100">ปิด</button>
+                <button onclick="saveConfigUrl()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-sm">บันทึกและซิงก์ข้อมูล</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // หากต้องการฝังลิงก์ถาวร ไม่ต้องกรอกใหม่ ให้เอา URL ที่ลงท้ายด้วย /exec มาใส่ในเครื่องหมายคำพูดด้านล่างนี้ครับ
+    const DEFAULT_SCRIPT_URL = ""; 
+
+    let scriptUrl = localStorage.getItem('gas_script_url') || DEFAULT_SCRIPT_URL;
+
+    const defaultData = [
+        { assetTag: 'IT-NB-001', name: 'MacBook Pro 14" M3 Pro (18GB/512GB)', category: 'Computer / Laptop', serial: 'C02X9482M3', status: 'กำลังใช้งาน', holder: 'คุณกานดา (ฝ่าย Design)' },
+        { assetTag: 'IT-NB-002', name: 'Dell Latitude 5440 Core i7 Gen13', category: 'Computer / Laptop', serial: 'DL54409921', status: 'พร้อมใช้งาน', holder: 'คลังพัสดุไอที (ตู้ A1)' },
+        { assetTag: 'IT-MN-015', name: 'Dell UltraSharp 27" 4K USB-C Hub', category: 'Monitor', serial: 'CN08239102', status: 'กำลังใช้งาน', holder: 'คุณภาคภูมิ (ฝ่าย Dev)' }
+    ];
+
+    let inventory = JSON.parse(localStorage.getItem('it_inventory')) || defaultData;
+
+    function updateCloudUI(status) {
+        const badge = document.getElementById('cloudBadge');
+        const banner = document.getElementById('setupBanner');
+        const syncText = document.getElementById('syncStatusText');
+        const refreshIcon = document.getElementById('refreshIcon');
+
+        if (!scriptUrl) {
+            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700";
+            badge.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i> โหมดออฟไลน์ (LocalStorage)';
+            banner.classList.remove('hidden');
+            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> โหมดออฟไลน์';
+            refreshIcon.classList.remove('fa-spin');
+            return;
+        }
+
+        banner.classList.add('hidden');
+        if (status === 'syncing') {
+            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-700";
+            badge.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> กำลังซิงก์ข้อมูล...';
+            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span> กำลังซิงก์ข้อมูล...';
+            refreshIcon.classList.add('fa-spin');
+        } else if (status === 'online') {
+            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700";
+            badge.innerHTML = '<i class="fa-solid fa-cloud-check"></i> ซิงก์กับ Google Sheet แล้ว';
+            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ออนไลน์ (Google Sheet)';
+            refreshIcon.classList.remove('fa-spin');
+        } else if (status === 'error') {
+            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-100 text-rose-700";
+            badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ซิงก์ไม่สำเร็จ (เช็กตั้งค่า)';
+            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> การเชื่อมต่อผิดพลาด';
+            refreshIcon.classList.remove('fa-spin');
+        }
+    }
+
+    // ดึงข้อมูลจาก Google Sheet
+    async function fetchFromGoogleSheet() {
+        if (!scriptUrl) {
+            updateCloudUI('offline');
+            return;
+        }
+        updateCloudUI('syncing');
+        try {
+            const res = await fetch(scriptUrl + '?t=' + new Date().getTime());
+            const json = await res.json();
+            if (json.status === 'success' && Array.isArray(json.data)) {
+                inventory = json.data;
+                localStorage.setItem('it_inventory', JSON.stringify(inventory));
+                renderData();
+                updateCloudUI('online');
+            } else {
+                updateCloudUI('error');
+            }
+        } catch (err) {
+            console.error('Fetch Error:', err);
+            updateCloudUI('error');
+        }
+    }
+
+    // ส่งข้อมูลไปบันทึกลง Google Sheet (ใส่ mode: 'no-cors' ทะลุการบล็อกของเบราว์เซอร์ 100%)
+    async function syncToGoogleSheet() {
+        localStorage.setItem('it_inventory', JSON.stringify(inventory));
+        if (!scriptUrl) return;
+
+        updateCloudUI('syncing');
+        try {
+            await fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'syncAll', data: inventory })
+            });
+            updateCloudUI('online');
+        } catch (err) {
+            console.error('Sync Error:', err);
+            updateCloudUI('error');
+        }
+    }
+
+    function openConfigModal() {
+        document.getElementById('scriptUrlInput').value = scriptUrl;
+        document.getElementById('configModal').classList.remove('hidden');
+        document.getElementById('configModal').classList.add('flex');
+    }
+
+    function closeConfigModal() {
+        document.getElementById('configModal').classList.add('hidden');
+        document.getElementById('configModal').classList.remove('flex');
+    }
+
+    async function saveConfigUrl() {
+        scriptUrl = document.getElementById('scriptUrlInput').value.trim();
+        localStorage.setItem('gas_script_url', scriptUrl);
+        closeConfigModal();
+        if (scriptUrl) {
+            // บันทึกข้อมูลชุดปัจจุบันขึ้นไปก่อน แล้วดึงกลับมาเช็ก
+            await syncToGoogleSheet();
+        } else {
+            updateCloudUI('offline');
+        }
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        if (isClosed) {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('opacity-0');
+            setTimeout(() => backdrop.classList.add('hidden'), 300);
+        }
+    }
+
+    function closeSidebarOnMobile() {
+        if (window.innerWidth < 1024) toggleSidebar();
+    }
+
+    function getStatusBadge(status) {
+        if (status === 'พร้อมใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>พร้อมใช้งาน</span>';
+        if (status === 'กำลังใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>กำลังใช้งาน</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>ส่งซ่อม</span>';
+    }
+
+    function getCategoryIcon(category) {
+        if (category === 'Computer / Laptop') return '<i class="fa-solid fa-laptop text-blue-500"></i>';
+        if (category === 'Monitor') return '<i class="fa-solid fa-desktop text-indigo-500"></i>';
+        if (category === 'Network') return '<i class="fa-solid fa-network-wired text-emerald-500"></i>';
+        return '<i class="fa-solid fa-keyboard text-amber-500"></i>';
+    }
+
+    function updateStats() {
+        const total = inventory.length;
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('badge-all').innerText = total;
+        document.getElementById('stat-available').innerText = inventory.filter(i => i.status === 'พร้อมใช้งาน').length;
+        document.getElementById('stat-inuse').innerText = inventory.filter(i => i.status === 'กำลังใช้งาน').length;
+        document.getElementById('stat-repair').innerText = inventory.filter(i => i.status === 'ส่งซ่อม').length;
+    }
+
+    function renderData() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const category = document.getElementById('categoryFilter').value;
+        const status = document.getElementById('statusFilter').value;
+
+        document.getElementById('clearSearchBtn').classList.toggle('hidden', search === '');
+
+        const desktopBody = document.getElementById('desktopTableBody');
+        const mobileContainer = document.getElementById('mobileCardContainer');
+        const emptyState = document.getElementById('emptyState');
+
+        desktopBody.innerHTML = '';
+        mobileContainer.innerHTML = '';
+
+        const filtered = inventory.filter(item => {
+            const matchSearch = String(item.assetTag).toLowerCase().includes(search) ||
+                                String(item.name).toLowerCase().includes(search) ||
+                                String(item.serial).toLowerCase().includes(search) ||
+                                String(item.holder).toLowerCase().includes(search);
+            const matchCat = category === '' || item.category === category;
+            const matchStatus = status === '' || item.status === status;
+            return matchSearch && matchCat && matchStatus;
+        });
+
+        if (filtered.length === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            filtered.forEach((item) => {
+                const realIndex = inventory.indexOf(item);
+                const badge = getStatusBadge(item.status);
+                const catIcon = getCategoryIcon(item.category);
+
+                desktopBody.innerHTML += `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3.5 px-5 font-semibold text-blue-600 whitespace-nowrap">${item.assetTag}</td>
+                        <td class="py-3.5 px-5 font-medium text-slate-800">${item.name}</td>
+                        <td class="py-3.5 px-5 text-slate-600 whitespace-nowrap"><span class="mr-2">${catIcon}</span>${item.category}</td>
+                        <td class="py-3.5 px-5 font-mono text-xs text-slate-500">${item.serial}</td>
+                        <td class="py-3.5 px-5 whitespace-nowrap">${badge}</td>
+                        <td class="py-3.5 px-5 text-slate-600">${item.holder}</td>
+                        <td class="py-3.5 px-5 text-right whitespace-nowrap space-x-1">
+                            <button onclick="openModal(${realIndex})" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteItem(${realIndex})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+
+                mobileContainer.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex justify-between items-start gap-2">
+                                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-lg">${item.assetTag}</span>
+                                ${badge}
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-sm mt-2.5 leading-snug">${item.name}</h4>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">${catIcon} ${item.category}</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs border border-slate-100">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Serial Number:</span>
+                                <span class="font-mono font-medium text-slate-700">${item.serial}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">ผู้ถือครอง/ที่เก็บ:</span>
+                                <span class="font-medium text-slate-700 text-right">${item.holder}</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+                            <button onclick="openModal(${realIndex})" class="flex-1 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                            </button>
+                            <button onclick="deleteItem(${realIndex})" class="px-3.5 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-medium transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        updateStats();
+    }
+
+    function setFilterCategory(cat) { document.getElementById('categoryFilter').value = cat; renderData(); }
+    function setStatusFilter(status) { document.getElementById('statusFilter').value = status; renderData(); }
+    function clearSearch() { document.getElementById('searchInput').value = ''; renderData(); }
+    function resetFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        renderData();
+    }
+
+    function openModal(index = null) {
+        const modal = document.getElementById('itemModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (index !== null) {
+            document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลพัสดุ';
+            document.getElementById('editIndex').value = index;
+            const item = inventory[index];
+            document.getElementById('assetTag').value = item.assetTag;
+            document.getElementById('name').value = item.name;
+            document.getElementById('category').value = item.category;
+            document.getElementById('serial').value = item.serial;
+            document.getElementById('status').value = item.status;
+            document.getElementById('holder').value = item.holder;
+        } else {
+            document.getElementById('modalTitle').innerText = 'เพิ่มพัสดุไอทีใหม่';
+            document.getElementById('itemForm').reset();
+            document.getElementById('editIndex').value = '';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('itemModal').classList.add('hidden');
+        document.getElementById('itemModal').classList.remove('flex');
+    }
+
+    async function saveItem(e) {
+        e.preventDefault();
+        const editIndex = document.getElementById('editIndex').value;
+        const newItem = {
+            assetTag: document.getElementById('assetTag').value.trim(),
+            name: document.getElementById('name').value.trim(),
+            category: document.getElementById('category').value,
+            serial: document.getElementById('serial').value.trim(),
+            status: document.getElementById('status').value,
+            holder: document.getElementById('holder').value.trim()
+        };
+
+        if (editIndex === '') {
+            inventory.unshift(newItem);
+        } else {
+            inventory[editIndex] = newItem;
+        }
+        renderData();
+        closeModal();
+        await syncToGoogleSheet();
+    }
+
+    async function deleteItem(index) {
+        if (confirm(`ยืนยันการลบพัสดุรหัส ${inventory[index].assetTag} ?`)) {
+            inventory.splice(index, 1);
+            renderData();
+            await syncToGoogleSheet();
+        }
+    }
+
+    function exportCSV() {
+        let csv = '\uFEFFรหัสครุภัณฑ์,ชื่ออุปกรณ์,หมวดหมู่,Serial Number,สถานะ,ผู้ถือครอง/สถานที่\n';
+        inventory.forEach(item => {
+            csv += `"${item.assetTag}","${item.name}","${item.category}","${item.serial}","${item.status}","${item.holder}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `it_inventory_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+
+    // เริ่มต้นทำงาน
+    renderData();
+    if (scriptUrl) {
+        fetchFromGoogleSheet();
+    } else {
+        updateCloudUI('offline');
+    }
+</script>
+</body>
+</html>
