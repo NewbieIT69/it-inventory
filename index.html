@@ -2,27 +2,41 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบคลังพัสดุ IT - Cloud Sync Edition</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคลังพัสดุ IT</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Prompt) -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Prompt', sans-serif; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+<body class="bg-slate-100 text-slate-800 antialiased">
+
+<!-- ===== หน้าล็อกด้วย PIN ===== -->
+<div id="lockScreen" class="fixed inset-0 z-[60] bg-slate-900 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-7 shadow-2xl text-center">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-2xl mb-4">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="font-bold text-lg text-slate-800">คลังพัสดุ IT</h2>
+        <p class="text-xs text-slate-500 mt-1">กรอกรหัส PIN เพื่อเข้าใช้งาน</p>
+        <form onsubmit="login(event)" class="mt-5 space-y-3">
+            <input type="password" id="pinInput" inputmode="numeric" autocomplete="current-password" placeholder="••••••"
+                class="w-full text-center tracking-[0.4em] text-lg px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p id="pinError" class="hidden text-xs text-rose-600"></p>
+            <button type="submit" id="loginBtn" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+    </div>
+</div>
 
 <div class="flex h-screen overflow-hidden relative">
 
-    <!-- Mobile Backdrop Overlay -->
     <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 hidden lg:hidden transition-opacity opacity-0"></div>
 
     <!-- Sidebar -->
@@ -64,44 +78,40 @@
             </button>
         </nav>
 
-        <!-- Cloud Status Footer -->
-        <div class="p-4 border-t border-slate-800 bg-slate-950/50 text-xs text-slate-400 space-y-2">
+        <div class="p-4 border-t border-slate-800 bg-slate-950/50 text-xs text-slate-400">
             <div class="flex justify-between items-center">
                 <span id="syncStatusText" class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-400"></span> โหมดออฟไลน์
+                    <span class="w-2 h-2 rounded-full bg-slate-500"></span> รอเชื่อมต่อ
                 </span>
-                <button onclick="openConfigModal()" class="text-blue-400 hover:text-blue-300 underline">ตั้งค่าลิงก์</button>
+                <button onclick="logout()" class="text-rose-400 hover:text-rose-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                </button>
             </div>
         </div>
     </aside>
 
-    <!-- Main Content Wrapper -->
+    <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
-        <!-- Top Header -->
+
         <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-3.5 flex justify-between items-center sticky top-0 z-20">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
                 <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
-                <div>
+                <div class="min-w-0">
                     <h2 class="text-base sm:text-xl font-bold text-slate-800 truncate flex items-center gap-2">
                         คลังพัสดุ IT
-                        <span id="cloudBadge" onclick="openConfigModal()" class="cursor-pointer hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700">
-                            <i class="fa-solid fa-plug-circle-xmark"></i> ยังไม่ได้เชื่อม Sheet
+                        <span id="cloudBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                            <i class="fa-solid fa-plug"></i> รอเชื่อมต่อ
                         </span>
                     </h2>
-                    <p class="text-xs text-slate-500 hidden sm:block">ซิงก์ข้อมูลอัตโนมัติกับ Google Sheets (คลังพัสดุ IT)</p>
+                    <p class="text-xs text-slate-500 hidden sm:block">ข้อมูลซิงก์กับ Google Sheets อัตโนมัติ</p>
                 </div>
             </div>
-            
-            <!-- Action Buttons -->
+
             <div class="flex items-center gap-2">
-                <button onclick="fetchFromGoogleSheet()" id="refreshBtn" class="p-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm transition shadow-sm" title="ดึงข้อมูลล่าสุดจาก Google Sheet">
+                <button onclick="loadData()" class="p-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm transition shadow-sm" title="ดึงข้อมูลล่าสุด">
                     <i id="refreshIcon" class="fa-solid fa-arrows-rotate"></i>
-                </button>
-                <button onclick="openConfigModal()" class="p-2.5 border border-slate-200 hover:bg-slate-50 text-blue-600 rounded-xl text-sm transition shadow-sm" title="ตั้งค่าลิงก์ Google Sheet">
-                    <i class="fa-solid fa-gear"></i>
                 </button>
                 <button onclick="exportCSV()" class="hidden sm:flex px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium items-center gap-2 transition shadow-sm">
                     <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV
@@ -113,66 +123,41 @@
             </div>
         </header>
 
-        <!-- Scrollable Content -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 pb-24 sm:pb-6">
 
-            <!-- Alert Banner if not connected -->
-            <div id="setupBanner" class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">
-                        <i class="fa-solid fa-link"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-sm">เชื่อมต่อกับ Google Sheets "คลังพัสดุ IT"</h4>
-                        <p class="text-xs text-blue-100">นำ Web App URL ที่ลงท้ายด้วย /exec มาใส่เพื่อให้หน้าเว็บส่งข้อมูลเข้าชีตได้ทันที</p>
-                    </div>
-                </div>
-                <button onclick="openConfigModal()" class="w-full sm:w-auto px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-bold shrink-0 transition shadow-sm">
-                    ใส่ลิงก์เชื่อมต่อที่นี่
-                </button>
-            </div>
-            
-            <!-- Summary KPI Cards -->
+            <!-- KPI -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div onclick="setStatusFilter('')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
                     <div>
                         <p class="text-[11px] sm:text-xs font-medium text-slate-500">ทั้งหมดในระบบ</p>
                         <h3 id="stat-total" class="text-xl sm:text-2xl font-bold text-slate-800 mt-0.5">0</h3>
                     </div>
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                        <i class="fa-solid fa-cubes"></i>
-                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg sm:text-xl shrink-0"><i class="fa-solid fa-cubes"></i></div>
                 </div>
                 <div onclick="setStatusFilter('พร้อมใช้งาน')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
                     <div>
                         <p class="text-[11px] sm:text-xs font-medium text-slate-500">พร้อมใช้ (Stock)</p>
                         <h3 id="stat-available" class="text-xl sm:text-2xl font-bold text-emerald-600 mt-0.5">0</h3>
                     </div>
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                        <i class="fa-solid fa-circle-check"></i>
-                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl shrink-0"><i class="fa-solid fa-circle-check"></i></div>
                 </div>
                 <div onclick="setStatusFilter('กำลังใช้งาน')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
                     <div>
                         <p class="text-[11px] sm:text-xs font-medium text-slate-500">ใช้งานอยู่ (In Use)</p>
                         <h3 id="stat-inuse" class="text-xl sm:text-2xl font-bold text-amber-600 mt-0.5">0</h3>
                     </div>
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                        <i class="fa-solid fa-user-check"></i>
-                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl shrink-0"><i class="fa-solid fa-user-check"></i></div>
                 </div>
                 <div onclick="setStatusFilter('ส่งซ่อม')" class="cursor-pointer bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center justify-between">
                     <div>
                         <p class="text-[11px] sm:text-xs font-medium text-slate-500">ส่งซ่อม / เคลม</p>
                         <h3 id="stat-repair" class="text-xl sm:text-2xl font-bold text-rose-600 mt-0.5">0</h3>
                     </div>
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                        <i class="fa-solid fa-screwdriver-wrench"></i>
-                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg sm:text-xl shrink-0"><i class="fa-solid fa-screwdriver-wrench"></i></div>
                 </div>
             </div>
 
-            <!-- Search & Filters Bar -->
+            <!-- Search & Filters -->
             <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -181,7 +166,6 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
                 </div>
-                
                 <div class="grid grid-cols-2 sm:flex gap-2.5">
                     <select id="categoryFilter" onchange="renderData()" class="w-full sm:w-44 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">ทุกหมวดหมู่</option>
@@ -199,8 +183,14 @@
                 </div>
             </div>
 
-            <!-- DESKTOP VIEW: Table -->
-            <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <!-- Loading -->
+            <div id="loadingState" class="hidden bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-500 text-sm">
+                <i class="fa-solid fa-spinner fa-spin text-2xl text-blue-500 mb-3"></i>
+                <p>กำลังโหลดข้อมูลจาก Google Sheet...</p>
+            </div>
+
+            <!-- Desktop Table -->
+            <div id="desktopTable" class="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -219,25 +209,23 @@
                 </div>
             </div>
 
-            <!-- MOBILE VIEW: Card Grid -->
+            <!-- Mobile Cards -->
             <div id="mobileCardContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:hidden"></div>
 
-            <!-- Empty State -->
+            <!-- Empty -->
             <div id="emptyState" class="hidden bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
                 <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
                     <i class="fa-solid fa-box-open"></i>
                 </div>
-                <h4 class="font-bold text-slate-700 text-base">ไม่พบรายการพัสดุที่ค้นหา</h4>
-                <p class="text-xs text-slate-500 mt-1">ลองเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูข้อมูลทั้งหมด</p>
-                <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition">
-                    ล้างตัวกรองทั้งหมด
-                </button>
+                <h4 class="font-bold text-slate-700 text-base">ไม่พบรายการพัสดุ</h4>
+                <p class="text-xs text-slate-500 mt-1">ลองเปลี่ยนคำค้นหา หรือกด "เพิ่มพัสดุ" เพื่อเริ่มบันทึก</p>
+                <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition">ล้างตัวกรองทั้งหมด</button>
             </div>
         </main>
     </div>
 </div>
 
-<!-- Modal Add/Edit Item -->
+<!-- Modal เพิ่ม/แก้ไข -->
 <div id="itemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-end sm:items-center justify-center z-50 p-0 sm:p-4">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -247,7 +235,7 @@
             </button>
         </div>
         <form id="itemForm" onsubmit="saveItem(event)" class="p-6 space-y-4 overflow-y-auto">
-            <input type="hidden" id="editIndex">
+            <input type="hidden" id="editTag">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1.5">รหัสครุภัณฑ์ (Asset Tag) *</label>
@@ -287,171 +275,204 @@
             </div>
             <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
                 <button type="button" onclick="closeModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-100 transition">ยกเลิก</button>
-                <button type="submit" id="saveBtn" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md shadow-blue-600/20 transition">บันทึกข้อมูล</button>
+                <button type="submit" id="saveBtn" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium shadow-md shadow-blue-600/20 transition">บันทึกข้อมูล</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal Config Google Sheet API -->
-<div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-cloud-arrow-up text-blue-600"></i> ตั้งค่าเชื่อม Google Sheets
-            </h3>
-            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="p-6 space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Google Apps Script Web App URL</label>
-                <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                    วางลิงก์ที่ได้จากการ Deploy Google Apps Script (ต้องลงท้ายด้วย <code class="bg-slate-100 px-1 rounded font-bold text-blue-600">/exec</code> เท่านั้น)
-                </p>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeConfigModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-600 hover:bg-slate-100">ปิด</button>
-                <button onclick="saveConfigUrl()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-sm">บันทึกและซิงก์ข้อมูล</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-    // หากต้องการฝังลิงก์ถาวร ไม่ต้องกรอกใหม่ ให้เอา URL ที่ลงท้ายด้วย /exec มาใส่ในเครื่องหมายคำพูดด้านล่างนี้ครับ
-    const DEFAULT_SCRIPT_URL = ""; 
+    // ================== ตั้งค่า ==================
+    // วางลิงก์ Web App ที่ลงท้ายด้วย /exec ไว้ในเครื่องหมายคำพูดด้านล่าง
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPhj3-oNPfMLHIBLYnuD2AjSbShgnld1wXs-vGfn8lvCgHLNZgoMm4xVj0M2Qfdpfy/exec";
+    const AUTO_REFRESH_MS = 60000; // ดึงข้อมูลใหม่อัตโนมัติทุก 1 นาที
+    // ============================================
 
-    let scriptUrl = localStorage.getItem('gas_script_url') || DEFAULT_SCRIPT_URL;
+    const PIN_KEY = 'it_inventory_pin';
+    let userPin = localStorage.getItem(PIN_KEY) || '';
+    let inventory = [];
 
-    const defaultData = [
-        { assetTag: 'IT-NB-001', name: 'MacBook Pro 14" M3 Pro (18GB/512GB)', category: 'Computer / Laptop', serial: 'C02X9482M3', status: 'กำลังใช้งาน', holder: 'คุณกานดา (ฝ่าย Design)' },
-        { assetTag: 'IT-NB-002', name: 'Dell Latitude 5440 Core i7 Gen13', category: 'Computer / Laptop', serial: 'DL54409921', status: 'พร้อมใช้งาน', holder: 'คลังพัสดุไอที (ตู้ A1)' },
-        { assetTag: 'IT-MN-015', name: 'Dell UltraSharp 27" 4K USB-C Hub', category: 'Monitor', serial: 'CN08239102', status: 'กำลังใช้งาน', holder: 'คุณภาคภูมิ (ฝ่าย Dev)' }
-    ];
+    function escapeHtml(v) {
+        return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
 
-    let inventory = JSON.parse(localStorage.getItem('it_inventory')) || defaultData;
+    function isUrlReady() {
+        return /^https:\/\/script\.google\.com\/.+\/exec$/.test(SCRIPT_URL.trim());
+    }
 
-    function updateCloudUI(status) {
+    // ---------- เรียก API ----------
+    async function apiGet() {
+        const res = await fetch(SCRIPT_URL + '?pin=' + encodeURIComponent(userPin) + '&t=' + Date.now());
+        return res.json();
+    }
+
+    async function apiPost(body) {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ ...body, pin: userPin })
+        });
+        return res.json();
+    }
+
+    // ---------- สถานะการเชื่อมต่อ ----------
+    function setSyncUI(state) {
         const badge = document.getElementById('cloudBadge');
-        const banner = document.getElementById('setupBanner');
-        const syncText = document.getElementById('syncStatusText');
-        const refreshIcon = document.getElementById('refreshIcon');
+        const text = document.getElementById('syncStatusText');
+        const icon = document.getElementById('refreshIcon');
+        const base = "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium ";
 
-        if (!scriptUrl) {
-            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700";
-            badge.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i> โหมดออฟไลน์ (LocalStorage)';
-            banner.classList.remove('hidden');
-            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> โหมดออฟไลน์';
-            refreshIcon.classList.remove('fa-spin');
+        icon.classList.toggle('fa-spin', state === 'syncing');
+        if (state === 'syncing') {
+            badge.className = base + "bg-blue-100 text-blue-700";
+            badge.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> กำลังซิงก์...';
+            text.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span> กำลังซิงก์...';
+        } else if (state === 'online') {
+            badge.className = base + "bg-emerald-100 text-emerald-700";
+            badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> ซิงก์กับ Google Sheet แล้ว';
+            text.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ออนไลน์';
+        } else {
+            badge.className = base + "bg-rose-100 text-rose-700";
+            badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> เชื่อมต่อไม่สำเร็จ';
+            text.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> เชื่อมต่อผิดพลาด';
+        }
+    }
+
+    // ---------- ล็อก / ปลดล็อก ----------
+    function showLock(msg) {
+        const lock = document.getElementById('lockScreen');
+        lock.classList.remove('hidden');
+        lock.classList.add('flex');
+        const err = document.getElementById('pinError');
+        if (msg) { err.textContent = msg; err.classList.remove('hidden'); }
+        else { err.classList.add('hidden'); }
+        document.getElementById('pinInput').value = '';
+        setTimeout(() => document.getElementById('pinInput').focus(), 50);
+    }
+
+    function hideLock() {
+        const lock = document.getElementById('lockScreen');
+        lock.classList.add('hidden');
+        lock.classList.remove('flex');
+    }
+
+    async function login(e) {
+        e.preventDefault();
+        if (!isUrlReady()) {
+            showLock('ยังไม่ได้ใส่ลิงก์ /exec ในโค้ด (บรรทัด SCRIPT_URL)');
             return;
         }
+        const pin = document.getElementById('pinInput').value.trim();
+        if (!pin) return;
 
-        banner.classList.add('hidden');
-        if (status === 'syncing') {
-            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-700";
-            badge.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> กำลังซิงก์ข้อมูล...';
-            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span> กำลังซิงก์ข้อมูล...';
-            refreshIcon.classList.add('fa-spin');
-        } else if (status === 'online') {
-            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700";
-            badge.innerHTML = '<i class="fa-solid fa-cloud-check"></i> ซิงก์กับ Google Sheet แล้ว';
-            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ออนไลน์ (Google Sheet)';
-            refreshIcon.classList.remove('fa-spin');
-        } else if (status === 'error') {
-            badge.className = "cursor-pointer hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-100 text-rose-700";
-            badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ซิงก์ไม่สำเร็จ (เช็กตั้งค่า)';
-            syncText.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> การเชื่อมต่อผิดพลาด';
-            refreshIcon.classList.remove('fa-spin');
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+
+        userPin = pin;
+        const ok = await loadData(true);
+
+        btn.disabled = false;
+        btn.textContent = 'เข้าสู่ระบบ';
+        if (ok) {
+            localStorage.setItem(PIN_KEY, pin);
+            hideLock();
         }
     }
 
-    // ดึงข้อมูลจาก Google Sheet
-    async function fetchFromGoogleSheet() {
-        if (!scriptUrl) {
-            updateCloudUI('offline');
-            return;
+    function logout() {
+        localStorage.removeItem(PIN_KEY);
+        userPin = '';
+        inventory = [];
+        renderData();
+        showLock();
+    }
+
+    // ---------- โหลดข้อมูล ----------
+    function handleResponse(json) {
+        if (json.status === 'unauthorized') {
+            localStorage.removeItem(PIN_KEY);
+            userPin = '';
+            setSyncUI('error');
+            showLock(json.message || 'PIN ไม่ถูกต้อง');
+            return false;
         }
-        updateCloudUI('syncing');
+        if (json.status !== 'success') {
+            setSyncUI('error');
+            alert('เกิดข้อผิดพลาด: ' + (json.message || 'ไม่ทราบสาเหตุ'));
+            return false;
+        }
+        inventory = Array.isArray(json.data) ? json.data : [];
+        renderData();
+        setSyncUI('online');
+        return true;
+    }
+
+    async function loadData(fromLogin = false) {
+        if (!userPin) return false;
+        if (inventory.length === 0) document.getElementById('loadingState').classList.remove('hidden');
+        setSyncUI('syncing');
         try {
-            const res = await fetch(scriptUrl + '?t=' + new Date().getTime());
-            const json = await res.json();
-            if (json.status === 'success' && Array.isArray(json.data)) {
-                inventory = json.data;
-                localStorage.setItem('it_inventory', JSON.stringify(inventory));
-                renderData();
-                updateCloudUI('online');
-            } else {
-                updateCloudUI('error');
-            }
+            const json = await apiGet();
+            return handleResponse(json);
         } catch (err) {
-            console.error('Fetch Error:', err);
-            updateCloudUI('error');
+            console.error('Load Error:', err);
+            setSyncUI('error');
+            if (fromLogin) showLock('เชื่อมต่อไม่ได้ ตรวจสอบลิงก์ /exec และการ Deploy อีกครั้ง');
+            return false;
+        } finally {
+            document.getElementById('loadingState').classList.add('hidden');
         }
     }
 
-    // ส่งข้อมูลไปบันทึกลง Google Sheet (ใส่ mode: 'no-cors' ทะลุการบล็อกของเบราว์เซอร์ 100%)
-    async function syncToGoogleSheet() {
-        localStorage.setItem('it_inventory', JSON.stringify(inventory));
-        if (!scriptUrl) return;
+    // ---------- เพิ่ม / แก้ไข / ลบ ----------
+    async function saveItem(e) {
+        e.preventDefault();
+        const originalTag = document.getElementById('editTag').value;
+        const item = {
+            assetTag: document.getElementById('assetTag').value.trim(),
+            name: document.getElementById('name').value.trim(),
+            category: document.getElementById('category').value,
+            serial: document.getElementById('serial').value.trim(),
+            status: document.getElementById('status').value,
+            holder: document.getElementById('holder').value.trim()
+        };
 
-        updateCloudUI('syncing');
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+        setSyncUI('syncing');
+
         try {
-            await fetch(scriptUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'syncAll', data: inventory })
-            });
-            updateCloudUI('online');
+            const json = await apiPost(originalTag
+                ? { action: 'update', originalTag: originalTag, item: item }
+                : { action: 'add', item: item });
+            if (handleResponse(json)) closeModal();
         } catch (err) {
-            console.error('Sync Error:', err);
-            updateCloudUI('error');
+            console.error('Save Error:', err);
+            setSyncUI('error');
+            alert('บันทึกไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'บันทึกข้อมูล';
         }
     }
 
-    function openConfigModal() {
-        document.getElementById('scriptUrlInput').value = scriptUrl;
-        document.getElementById('configModal').classList.remove('hidden');
-        document.getElementById('configModal').classList.add('flex');
-    }
-
-    function closeConfigModal() {
-        document.getElementById('configModal').classList.add('hidden');
-        document.getElementById('configModal').classList.remove('flex');
-    }
-
-    async function saveConfigUrl() {
-        scriptUrl = document.getElementById('scriptUrlInput').value.trim();
-        localStorage.setItem('gas_script_url', scriptUrl);
-        closeConfigModal();
-        if (scriptUrl) {
-            // บันทึกข้อมูลชุดปัจจุบันขึ้นไปก่อน แล้วดึงกลับมาเช็ก
-            await syncToGoogleSheet();
-        } else {
-            updateCloudUI('offline');
+    async function deleteItem(index) {
+        const tag = inventory[index].assetTag;
+        if (!confirm('ยืนยันการลบพัสดุรหัส ' + tag + ' ?')) return;
+        setSyncUI('syncing');
+        try {
+            const json = await apiPost({ action: 'delete', assetTag: tag });
+            handleResponse(json);
+        } catch (err) {
+            console.error('Delete Error:', err);
+            setSyncUI('error');
+            alert('ลบไม่สำเร็จ กรุณาลองใหม่');
         }
     }
 
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        const isClosed = sidebar.classList.contains('-translate-x-full');
-        if (isClosed) {
-            sidebar.classList.remove('-translate-x-full');
-            backdrop.classList.remove('hidden');
-            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
-        } else {
-            sidebar.classList.add('-translate-x-full');
-            backdrop.classList.add('opacity-0');
-            setTimeout(() => backdrop.classList.add('hidden'), 300);
-        }
-    }
-
-    function closeSidebarOnMobile() {
-        if (window.innerWidth < 1024) toggleSidebar();
-    }
-
+    // ---------- แสดงผล ----------
     function getStatusBadge(status) {
         if (status === 'พร้อมใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>พร้อมใช้งาน</span>';
         if (status === 'กำลังใช้งาน') return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>กำลังใช้งาน</span>';
@@ -466,9 +487,8 @@
     }
 
     function updateStats() {
-        const total = inventory.length;
-        document.getElementById('stat-total').innerText = total;
-        document.getElementById('badge-all').innerText = total;
+        document.getElementById('stat-total').innerText = inventory.length;
+        document.getElementById('badge-all').innerText = inventory.length;
         document.getElementById('stat-available').innerText = inventory.filter(i => i.status === 'พร้อมใช้งาน').length;
         document.getElementById('stat-inuse').innerText = inventory.filter(i => i.status === 'กำลังใช้งาน').length;
         document.getElementById('stat-repair').innerText = inventory.filter(i => i.status === 'ส่งซ่อม').length;
@@ -478,87 +498,73 @@
         const search = document.getElementById('searchInput').value.toLowerCase();
         const category = document.getElementById('categoryFilter').value;
         const status = document.getElementById('statusFilter').value;
-
         document.getElementById('clearSearchBtn').classList.toggle('hidden', search === '');
 
-        const desktopBody = document.getElementById('desktopTableBody');
-        const mobileContainer = document.getElementById('mobileCardContainer');
-        const emptyState = document.getElementById('emptyState');
+        const filtered = inventory
+            .map((item, index) => ({ item, index }))
+            .filter(({ item }) => {
+                const text = [item.assetTag, item.name, item.serial, item.holder].join(' ').toLowerCase();
+                return text.includes(search)
+                    && (category === '' || item.category === category)
+                    && (status === '' || item.status === status);
+            });
 
-        desktopBody.innerHTML = '';
-        mobileContainer.innerHTML = '';
+        let desktopHtml = '';
+        let mobileHtml = '';
 
-        const filtered = inventory.filter(item => {
-            const matchSearch = String(item.assetTag).toLowerCase().includes(search) ||
-                                String(item.name).toLowerCase().includes(search) ||
-                                String(item.serial).toLowerCase().includes(search) ||
-                                String(item.holder).toLowerCase().includes(search);
-            const matchCat = category === '' || item.category === category;
-            const matchStatus = status === '' || item.status === status;
-            return matchSearch && matchCat && matchStatus;
+        filtered.forEach(({ item, index }) => {
+            const tag = escapeHtml(item.assetTag);
+            const name = escapeHtml(item.name);
+            const cat = escapeHtml(item.category);
+            const serial = escapeHtml(item.serial);
+            const holder = escapeHtml(item.holder);
+            const badge = getStatusBadge(item.status);
+            const catIcon = getCategoryIcon(item.category);
+
+            desktopHtml += `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3.5 px-5 font-semibold text-blue-600 whitespace-nowrap">${tag}</td>
+                    <td class="py-3.5 px-5 font-medium text-slate-800">${name}</td>
+                    <td class="py-3.5 px-5 text-slate-600 whitespace-nowrap"><span class="mr-2">${catIcon}</span>${cat}</td>
+                    <td class="py-3.5 px-5 font-mono text-xs text-slate-500">${serial}</td>
+                    <td class="py-3.5 px-5 whitespace-nowrap">${badge}</td>
+                    <td class="py-3.5 px-5 text-slate-600">${holder}</td>
+                    <td class="py-3.5 px-5 text-right whitespace-nowrap space-x-1">
+                        <button onclick="openModal(${index})" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteItem(${index})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+
+            mobileHtml += `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+                    <div>
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-lg">${tag}</span>
+                            ${badge}
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm mt-2.5 leading-snug">${name}</h4>
+                        <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">${catIcon} ${cat}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs border border-slate-100">
+                        <div class="flex justify-between gap-2"><span class="text-slate-400">Serial Number:</span><span class="font-mono font-medium text-slate-700">${serial}</span></div>
+                        <div class="flex justify-between gap-2"><span class="text-slate-400">ผู้ถือครอง/ที่เก็บ:</span><span class="font-medium text-slate-700 text-right">${holder}</span></div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+                        <button onclick="openModal(${index})" class="flex-1 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition"><i class="fa-solid fa-pen-to-square"></i> แก้ไข</button>
+                        <button onclick="deleteItem(${index})" class="px-3.5 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-medium transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
         });
 
-        if (filtered.length === 0) {
-            emptyState.classList.remove('hidden');
-        } else {
-            emptyState.classList.add('hidden');
-            filtered.forEach((item) => {
-                const realIndex = inventory.indexOf(item);
-                const badge = getStatusBadge(item.status);
-                const catIcon = getCategoryIcon(item.category);
-
-                desktopBody.innerHTML += `
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="py-3.5 px-5 font-semibold text-blue-600 whitespace-nowrap">${item.assetTag}</td>
-                        <td class="py-3.5 px-5 font-medium text-slate-800">${item.name}</td>
-                        <td class="py-3.5 px-5 text-slate-600 whitespace-nowrap"><span class="mr-2">${catIcon}</span>${item.category}</td>
-                        <td class="py-3.5 px-5 font-mono text-xs text-slate-500">${item.serial}</td>
-                        <td class="py-3.5 px-5 whitespace-nowrap">${badge}</td>
-                        <td class="py-3.5 px-5 text-slate-600">${item.holder}</td>
-                        <td class="py-3.5 px-5 text-right whitespace-nowrap space-x-1">
-                            <button onclick="openModal(${realIndex})" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteItem(${realIndex})" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-
-                mobileContainer.innerHTML += `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
-                        <div>
-                            <div class="flex justify-between items-start gap-2">
-                                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-lg">${item.assetTag}</span>
-                                ${badge}
-                            </div>
-                            <h4 class="font-bold text-slate-800 text-sm mt-2.5 leading-snug">${item.name}</h4>
-                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">${catIcon} ${item.category}</p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs border border-slate-100">
-                            <div class="flex justify-between">
-                                <span class="text-slate-400">Serial Number:</span>
-                                <span class="font-mono font-medium text-slate-700">${item.serial}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-400">ผู้ถือครอง/ที่เก็บ:</span>
-                                <span class="font-medium text-slate-700 text-right">${item.holder}</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
-                            <button onclick="openModal(${realIndex})" class="flex-1 py-2 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition">
-                                <i class="fa-solid fa-pen-to-square"></i> แก้ไข
-                            </button>
-                            <button onclick="deleteItem(${realIndex})" class="px-3.5 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-medium transition">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
+        document.getElementById('desktopTableBody').innerHTML = desktopHtml;
+        document.getElementById('mobileCardContainer').innerHTML = mobileHtml;
+        document.getElementById('emptyState').classList.toggle('hidden', filtered.length !== 0 || !userPin);
         updateStats();
     }
 
+    // ---------- ตัวกรอง ----------
     function setFilterCategory(cat) { document.getElementById('categoryFilter').value = cat; renderData(); }
-    function setStatusFilter(status) { document.getElementById('statusFilter').value = status; renderData(); }
+    function setStatusFilter(s) { document.getElementById('statusFilter').value = s; renderData(); }
     function clearSearch() { document.getElementById('searchInput').value = ''; renderData(); }
     function resetFilters() {
         document.getElementById('searchInput').value = '';
@@ -567,14 +573,17 @@
         renderData();
     }
 
+    // ---------- Modal ----------
+    function isModalOpen() { return !document.getElementById('itemModal').classList.contains('hidden'); }
+
     function openModal(index = null) {
         const modal = document.getElementById('itemModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         if (index !== null) {
-            document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลพัสดุ';
-            document.getElementById('editIndex').value = index;
             const item = inventory[index];
+            document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลพัสดุ';
+            document.getElementById('editTag').value = item.assetTag;
             document.getElementById('assetTag').value = item.assetTag;
             document.getElementById('name').value = item.name;
             document.getElementById('category').value = item.category;
@@ -584,65 +593,60 @@
         } else {
             document.getElementById('modalTitle').innerText = 'เพิ่มพัสดุไอทีใหม่';
             document.getElementById('itemForm').reset();
-            document.getElementById('editIndex').value = '';
+            document.getElementById('editTag').value = '';
         }
     }
 
     function closeModal() {
-        document.getElementById('itemModal').classList.add('hidden');
-        document.getElementById('itemModal').classList.remove('flex');
+        const modal = document.getElementById('itemModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
 
-    async function saveItem(e) {
-        e.preventDefault();
-        const editIndex = document.getElementById('editIndex').value;
-        const newItem = {
-            assetTag: document.getElementById('assetTag').value.trim(),
-            name: document.getElementById('name').value.trim(),
-            category: document.getElementById('category').value,
-            serial: document.getElementById('serial').value.trim(),
-            status: document.getElementById('status').value,
-            holder: document.getElementById('holder').value.trim()
-        };
-
-        if (editIndex === '') {
-            inventory.unshift(newItem);
+    // ---------- Sidebar มือถือ ----------
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
         } else {
-            inventory[editIndex] = newItem;
-        }
-        renderData();
-        closeModal();
-        await syncToGoogleSheet();
-    }
-
-    async function deleteItem(index) {
-        if (confirm(`ยืนยันการลบพัสดุรหัส ${inventory[index].assetTag} ?`)) {
-            inventory.splice(index, 1);
-            renderData();
-            await syncToGoogleSheet();
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('opacity-0');
+            setTimeout(() => backdrop.classList.add('hidden'), 300);
         }
     }
+    function closeSidebarOnMobile() { if (window.innerWidth < 1024) toggleSidebar(); }
 
+    // ---------- Export CSV ----------
     function exportCSV() {
-        let csv = '\uFEFFรหัสครุภัณฑ์,ชื่ออุปกรณ์,หมวดหมู่,Serial Number,สถานะ,ผู้ถือครอง/สถานที่\n';
-        inventory.forEach(item => {
-            csv += `"${item.assetTag}","${item.name}","${item.category}","${item.serial}","${item.status}","${item.holder}"\n`;
+        const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+        let csv = '\uFEFFรหัสครุภัณฑ์,ชื่ออุปกรณ์,หมวดหมู่,Serial Number,สถานะ,ผู้ถือครอง/สถานที่,อัปเดตล่าสุด\n';
+        inventory.forEach(i => {
+            csv += [i.assetTag, i.name, i.category, i.serial, i.status, i.holder, i.updatedAt].map(q).join(',') + '\n';
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `it_inventory_${new Date().toISOString().slice(0,10)}.csv`;
+        a.href = URL.createObjectURL(blob);
+        a.download = 'it_inventory_' + new Date().toISOString().slice(0, 10) + '.csv';
         a.click();
     }
 
-    // เริ่มต้นทำงาน
+    // ---------- เริ่มทำงาน ----------
     renderData();
-    if (scriptUrl) {
-        fetchFromGoogleSheet();
+    if (!isUrlReady()) {
+        showLock('ยังไม่ได้ใส่ลิงก์ /exec ในโค้ด (บรรทัด SCRIPT_URL)');
+    } else if (userPin) {
+        hideLock();
+        loadData(true);
     } else {
-        updateCloudUI('offline');
+        showLock();
     }
+
+    setInterval(() => {
+        if (userPin && !isModalOpen() && document.visibilityState === 'visible') loadData();
+    }, AUTO_REFRESH_MS);
 </script>
 </body>
 </html>
